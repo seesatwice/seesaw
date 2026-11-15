@@ -370,8 +370,7 @@ footer {
       COPIAR SESSION KEY
     </button>
     <p class="help">
-      Guarde essa chave. Na próxima etapa, vamos cadastrá-la como
-      LASTFM_SESSION_KEY nas variáveis privadas da Vercel.
+      Guarde essa chave com segurança.
     </p>
   </div>
 </section>
@@ -390,8 +389,7 @@ footer {
     <input id="album" type="text" placeholder="Ex: Cosmic">
 
     <label for="quantity">QUANTIDADE DE SCROBBLES *</label>
-    <input id="quantity" type="number" min="1" max="1000"
-      value="1" required>
+    <input id="quantity" type="number" min="1" max="1000" value="1" required>
 
     <div class="row">
       <div>
@@ -440,13 +438,11 @@ footer {
   ENVIAR SCROBBLES →
 </button>
 
-<p class="note">
-  SEESAW está em desenvolvimento.<br>
-  O envio de scrobbles será liberado após a configuração da conexão.
+<p class="note" id="appNote">
+  SEESAW — YOUR MUSIC, YOUR HISTORY.
 </p>
 
 <footer>SEESAW © 2026 · MADE FOR MUSIC LOVERS</footer>
-
 </div>
 
 <script>
@@ -454,13 +450,14 @@ const form = document.getElementById("musicForm");
 const trackList = document.getElementById("trackList");
 const trackTotal = document.getElementById("trackTotal");
 const scrobbleTotal = document.getElementById("scrobbleTotal");
-
 const passwordInput = document.getElementById("accessPassword");
 const connectButton = document.getElementById("connectButton");
 const finishButton = document.getElementById("finishButton");
 const authMessage = document.getElementById("authMessage");
 const sessionBox = document.getElementById("sessionBox");
 const sessionKeyElement = document.getElementById("sessionKey");
+const sendButton = document.getElementById("sendButton");
+const appNote = document.getElementById("appNote");
 
 let tracks = [];
 let pendingToken = null;
@@ -480,7 +477,13 @@ async function callServer(payload) {
     body: JSON.stringify(payload)
   });
 
-  const data = await response.json();
+  let data;
+
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error("O servidor retornou uma resposta inválida.");
+  }
 
   if (!response.ok) {
     throw new Error(data.error || "Não foi possível conectar ao servidor.");
@@ -491,7 +494,7 @@ async function callServer(payload) {
 
 // Iniciar autorização Last.fm
 connectButton.addEventListener("click", async () => {
-  const password = passwordInput.value;
+  const password = passwordInput.value.trim();
 
   if (!password) {
     showAuthMessage("Digite sua senha privada do SEESAW.", "error");
@@ -524,7 +527,6 @@ connectButton.addEventListener("click", async () => {
       "Página de autorização aberta. Autorize o SEESAW no Last.fm e depois volte para esta página.",
       "success"
     );
-
   } catch (error) {
     if (authWindow) authWindow.close();
     showAuthMessage(error.message, "error");
@@ -536,7 +538,7 @@ connectButton.addEventListener("click", async () => {
 
 // Concluir autorização e obter Session Key
 finishButton.addEventListener("click", async () => {
-  const password = passwordInput.value;
+  const password = passwordInput.value.trim();
 
   if (!password) {
     showAuthMessage("Digite sua senha privada do SEESAW.", "error");
@@ -573,7 +575,6 @@ finishButton.addEventListener("click", async () => {
     );
 
     finishButton.textContent = "CONEXÃO CONCLUÍDA";
-
   } catch (error) {
     showAuthMessage(error.message, "error");
     finishButton.disabled = false;
@@ -674,6 +675,7 @@ function render() {
   scrobbleTotal.textContent = total.toLocaleString("pt-BR");
 }
 
+// Adicionar música
 form.addEventListener("submit", (event) => {
   event.preventDefault();
 
@@ -702,6 +704,7 @@ form.addEventListener("submit", (event) => {
   render();
 });
 
+// Limpar lista
 document.getElementById("clearButton").addEventListener("click", () => {
   if (tracks.length === 0) return;
 
@@ -711,16 +714,87 @@ document.getElementById("clearButton").addEventListener("click", () => {
   }
 });
 
-document.getElementById("sendButton").addEventListener("click", () => {
+// Enviar scrobbles para o Last.fm
+sendButton.addEventListener("click", async () => {
   if (tracks.length === 0) {
     alert("Adicione pelo menos uma música primeiro!");
     return;
   }
 
-  alert(
-    "A lista está preparada, mas o envio ainda não foi ativado. " +
-    "Vamos configurar e testar a Session Key primeiro."
-  );
+  const password = passwordInput.value.trim();
+
+  if (!password) {
+    alert("Digite sua senha privada do SEESAW na seção Conectar Last.fm.");
+    passwordInput.focus();
+    return;
+  }
+
+  const total = tracks.reduce((sum, track) => sum + track.quantity, 0);
+
+  if (!confirm(`Enviar ${total} scrobbles para sua conta Last.fm?`)) {
+    return;
+  }
+
+  sendButton.disabled = true;
+  sendButton.textContent = "ENVIANDO...";
+  appNote.textContent = "Enviando seus scrobbles. Não feche esta página.";
+
+  try {
+    const payloadTracks = tracks.map(track => {
+      const now = new Date();
+
+      const date = track.date ||
+        `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+      const time = track.time ||
+        `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+      const chosenDate = new Date(`${date}T${time}:00`);
+
+      if (Number.isNaN(chosenDate.getTime())) {
+        throw new Error("Data ou horário inválido.");
+      }
+
+      return {
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        quantity: track.quantity,
+        timestamp: Math.floor(chosenDate.getTime() / 1000)
+      };
+    });
+
+    const result = await callServer({
+      action: "scrobble",
+      password,
+      tracks: payloadTracks
+    });
+
+    const accepted = Number(result.accepted || 0);
+    const ignored = Number(result.ignored || 0);
+
+    alert(
+      `Resultado do envio!\n\n` +
+      `Aceitos pelo Last.fm: ${accepted}\n` +
+      `Ignorados pelo Last.fm: ${ignored}`
+    );
+
+    if (accepted === total && ignored === 0) {
+      tracks = [];
+      render();
+      appNote.textContent = "Scrobbles enviados com sucesso!";
+    } else {
+      appNote.textContent =
+        "O Last.fm não aceitou todos os registros. Confira o resultado.";
+    }
+
+  } catch (error) {
+    alert("Não foi possível concluir o envio:\n" + error.message);
+    appNote.textContent = "Ocorreu um erro durante o envio.";
+  } finally {
+    sendButton.disabled = false;
+    sendButton.textContent = "ENVIAR SCROBBLES →";
+  }
 });
 
 render();
