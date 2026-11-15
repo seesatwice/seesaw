@@ -41,9 +41,7 @@ header {
   letter-spacing: -2px;
 }
 
-.logo span {
-  color: #bb9bea;
-}
+.logo span { color: #bb9bea; }
 
 .subtitle {
   color: #a79db7;
@@ -108,13 +106,8 @@ input {
   color-scheme: dark;
 }
 
-input:focus {
-  border-color: #bb9bea;
-}
-
-input::placeholder {
-  color: #82788f;
-}
+input:focus { border-color: #bb9bea; }
+input::placeholder { color: #82788f; }
 
 .row {
   display: grid;
@@ -129,7 +122,14 @@ button {
   transition: .2s;
 }
 
-.add-button {
+button:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+
+.primary-button,
+.add-button,
+.send-button {
   width: 100%;
   background: #bb9bea;
   color: #21172e;
@@ -138,8 +138,69 @@ button {
   font-size: 14px;
 }
 
-.add-button:hover {
+.primary-button:hover,
+.add-button:hover,
+.send-button:hover {
   background: #d0b9f4;
+}
+
+.secondary-button {
+  width: 100%;
+  background: #403750;
+  color: #f7f3ff;
+  padding: 14px;
+  border-radius: 11px;
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+.help {
+  color: #a79db7;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 12px;
+}
+
+.message {
+  display: none;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 14px;
+  overflow-wrap: anywhere;
+}
+
+.message.success {
+  display: block;
+  background: #20372d;
+  color: #a7e5bd;
+}
+
+.message.error {
+  display: block;
+  background: #40232e;
+  color: #ffb5c5;
+}
+
+.session-box {
+  display: none;
+  margin-top: 16px;
+  padding: 14px;
+  background: #292439;
+  border: 1px solid #55446d;
+  border-radius: 12px;
+}
+
+.session-box label { margin-bottom: 10px; }
+
+.session-key {
+  font-size: 11px;
+  line-height: 1.5;
+  color: #d0b9f4;
+  overflow-wrap: anywhere;
+  user-select: all;
+  margin-bottom: 12px;
 }
 
 .stats {
@@ -232,12 +293,6 @@ button {
 }
 
 .send-button {
-  width: 100%;
-  background: #bb9bea;
-  color: #21172e;
-  padding: 17px;
-  border-radius: 12px;
-  font-size: 14px;
   margin-top: 20px;
 }
 
@@ -282,10 +337,49 @@ footer {
 </p>
 
 <section class="panel">
+  <div class="panel-title">♫ Conectar Last.fm</div>
+
+  <label for="accessPassword">SENHA PRIVADA DO SEESAW</label>
+  <input
+    id="accessPassword"
+    type="password"
+    placeholder="Digite sua senha do SEESAW"
+    autocomplete="off"
+  >
+
+  <button class="primary-button" id="connectButton" type="button">
+    CONECTAR MINHA CONTA LAST.FM
+  </button>
+
+  <p class="help">
+    1. Digite sua senha privada do SEESAW.<br>
+    2. Clique no botão e autorize o aplicativo na página do Last.fm.<br>
+    3. Volte para esta página e conclua a conexão.
+  </p>
+
+  <button class="secondary-button" id="finishButton" type="button" disabled>
+    JÁ AUTORIZEI — CONCLUIR CONEXÃO
+  </button>
+
+  <div id="authMessage" class="message"></div>
+
+  <div id="sessionBox" class="session-box">
+    <label>SUA SESSION KEY DO LAST.FM</label>
+    <div id="sessionKey" class="session-key"></div>
+    <button class="secondary-button" id="copySessionButton" type="button">
+      COPIAR SESSION KEY
+    </button>
+    <p class="help">
+      Guarde essa chave. Na próxima etapa, vamos cadastrá-la como
+      LASTFM_SESSION_KEY nas variáveis privadas da Vercel.
+    </p>
+  </div>
+</section>
+
+<section class="panel">
   <div class="panel-title">✦ Informações da música</div>
 
   <form id="musicForm">
-
     <label for="title">NOME DA MÚSICA *</label>
     <input id="title" type="text" placeholder="Ex: Cosmic" required>
 
@@ -313,7 +407,6 @@ footer {
     <button class="add-button" type="submit">
       + ADICIONAR À LISTA
     </button>
-
   </form>
 </section>
 
@@ -330,6 +423,7 @@ footer {
 
 <section class="panel">
   <div class="panel-title">♫ Sua lista de músicas</div>
+
   <div id="trackList">
     <div class="empty">
       Sua lista está vazia.<br>
@@ -347,8 +441,8 @@ footer {
 </button>
 
 <p class="note">
-  SEESAW ainda está em desenvolvimento.<br>
-  O envio real ao Last.fm será ativado após a integração.
+  SEESAW está em desenvolvimento.<br>
+  O envio de scrobbles será liberado após a configuração da conexão.
 </p>
 
 <footer>SEESAW © 2026 · MADE FOR MUSIC LOVERS</footer>
@@ -361,8 +455,151 @@ const trackList = document.getElementById("trackList");
 const trackTotal = document.getElementById("trackTotal");
 const scrobbleTotal = document.getElementById("scrobbleTotal");
 
-let tracks = [];
+const passwordInput = document.getElementById("accessPassword");
+const connectButton = document.getElementById("connectButton");
+const finishButton = document.getElementById("finishButton");
+const authMessage = document.getElementById("authMessage");
+const sessionBox = document.getElementById("sessionBox");
+const sessionKeyElement = document.getElementById("sessionKey");
 
+let tracks = [];
+let pendingToken = null;
+let currentSessionKey = null;
+
+function showAuthMessage(message, type) {
+  authMessage.textContent = message;
+  authMessage.className = "message " + type;
+}
+
+async function callServer(payload) {
+  const response = await fetch("/api/lastfm", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Não foi possível conectar ao servidor.");
+  }
+
+  return data;
+}
+
+// Iniciar autorização Last.fm
+connectButton.addEventListener("click", async () => {
+  const password = passwordInput.value;
+
+  if (!password) {
+    showAuthMessage("Digite sua senha privada do SEESAW.", "error");
+    return;
+  }
+
+  const authWindow = window.open("about:blank", "_blank");
+
+  connectButton.disabled = true;
+  connectButton.textContent = "CONECTANDO...";
+
+  try {
+    const data = await callServer({
+      action: "token",
+      password
+    });
+
+    pendingToken = data.token;
+
+    if (authWindow) {
+      authWindow.location.href = data.auth_url;
+    } else {
+      window.location.href = data.auth_url;
+      return;
+    }
+
+    finishButton.disabled = false;
+
+    showAuthMessage(
+      "Página de autorização aberta. Autorize o SEESAW no Last.fm e depois volte para esta página.",
+      "success"
+    );
+
+  } catch (error) {
+    if (authWindow) authWindow.close();
+    showAuthMessage(error.message, "error");
+  } finally {
+    connectButton.disabled = false;
+    connectButton.textContent = "CONECTAR MINHA CONTA LAST.FM";
+  }
+});
+
+// Concluir autorização e obter Session Key
+finishButton.addEventListener("click", async () => {
+  const password = passwordInput.value;
+
+  if (!password) {
+    showAuthMessage("Digite sua senha privada do SEESAW.", "error");
+    return;
+  }
+
+  if (!pendingToken) {
+    showAuthMessage(
+      "Primeiro clique em Conectar minha conta Last.fm.",
+      "error"
+    );
+    return;
+  }
+
+  finishButton.disabled = true;
+  finishButton.textContent = "FINALIZANDO...";
+
+  try {
+    const data = await callServer({
+      action: "session",
+      password,
+      token: pendingToken
+    });
+
+    currentSessionKey = data.session_key;
+    pendingToken = null;
+
+    sessionKeyElement.textContent = currentSessionKey;
+    sessionBox.style.display = "block";
+
+    showAuthMessage(
+      "Conta Last.fm autorizada com sucesso: " + data.username,
+      "success"
+    );
+
+    finishButton.textContent = "CONEXÃO CONCLUÍDA";
+
+  } catch (error) {
+    showAuthMessage(error.message, "error");
+    finishButton.disabled = false;
+    finishButton.textContent = "JÁ AUTORIZEI — CONCLUIR CONEXÃO";
+  }
+});
+
+// Copiar Session Key
+document.getElementById("copySessionButton").addEventListener("click", async () => {
+  if (!currentSessionKey) return;
+
+  try {
+    await navigator.clipboard.writeText(currentSessionKey);
+    showAuthMessage(
+      "Session Key copiada. Guarde-a com segurança.",
+      "success"
+    );
+  } catch {
+    showAuthMessage(
+      "Não foi possível copiar automaticamente. Selecione e copie a chave manualmente.",
+      "error"
+    );
+  }
+});
+
+// Lista de músicas
 function render() {
   trackList.innerHTML = "";
 
@@ -394,7 +631,8 @@ function render() {
 
     const count = document.createElement("div");
     count.className = "track-count";
-    count.textContent = track.quantity.toLocaleString("pt-BR") + " scrobbles";
+    count.textContent =
+      track.quantity.toLocaleString("pt-BR") + " scrobbles";
 
     const top = document.createElement("div");
     top.className = "track-top";
@@ -417,6 +655,7 @@ function render() {
     remove.className = "remove";
     remove.textContent = "✕ Remover";
     remove.type = "button";
+
     remove.addEventListener("click", () => {
       tracks.splice(index, 1);
       render();
@@ -478,11 +717,13 @@ document.getElementById("sendButton").addEventListener("click", () => {
     return;
   }
 
-  alert("Sua lista está preparada! A integração com o Last.fm será adicionada na próxima etapa. Nenhum scrobble foi enviado ainda.");
+  alert(
+    "A lista está preparada, mas o envio ainda não foi ativado. " +
+    "Vamos configurar e testar a Session Key primeiro."
+  );
 });
 
 render();
 </script>
 </body>
 </html>
-
