@@ -1,1 +1,488 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#171522">
+<title>SEESAW — Manual Scrobbler</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #111019;
+  color: #f7f3ff;
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+}
+
+.app {
+  width: 100%;
+  max-width: 650px;
+  margin: auto;
+  padding: 25px 18px 45px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 35px;
+}
+
+.logo {
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -2px;
+}
+
+.logo span {
+  color: #bb9bea;
+}
+
+.subtitle {
+  color: #a79db7;
+  font-size: 11px;
+  letter-spacing: 2px;
+  margin-top: 5px;
+}
+
+.status {
+  background: #292439;
+  color: #c7a8ff;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+}
+
+h1 {
+  font-size: 26px;
+  margin-bottom: 9px;
+}
+
+.description {
+  color: #a79db7;
+  font-size: 13px;
+  margin-bottom: 25px;
+  line-height: 1.5;
+}
+
+.panel {
+  background: #1d1a29;
+  border: 1px solid #302a40;
+  border-radius: 17px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.panel-title {
+  font-size: 15px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  color: #bdb2ce;
+  font-size: 11px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  letter-spacing: .7px;
+}
+
+input {
+  width: 100%;
+  background: #292439;
+  color: white;
+  border: 1px solid #403750;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 17px;
+  color-scheme: dark;
+}
+
+input:focus {
+  border-color: #bb9bea;
+}
+
+input::placeholder {
+  color: #82788f;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  font-weight: bold;
+  transition: .2s;
+}
+
+.add-button {
+  width: 100%;
+  background: #bb9bea;
+  color: #21172e;
+  padding: 16px;
+  border-radius: 11px;
+  font-size: 14px;
+}
+
+.add-button:hover {
+  background: #d0b9f4;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat {
+  background: #1d1a29;
+  border: 1px solid #302a40;
+  padding: 17px;
+  border-radius: 14px;
+}
+
+.stat small {
+  color: #a79db7;
+  font-size: 11px;
+}
+
+.stat strong {
+  display: block;
+  font-size: 25px;
+  margin-top: 8px;
+}
+
+.track {
+  background: #292439;
+  border: 1px solid #403750;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 11px;
+}
+
+.track-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.track-name {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.track-artist {
+  color: #b9a9ce;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.track-album {
+  color: #91879e;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.track-count {
+  color: #d0b9f4;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.track-date {
+  color: #a79db7;
+  font-size: 11px;
+  margin-top: 10px;
+}
+
+.remove {
+  background: transparent;
+  color: #ed9aab;
+  font-size: 12px;
+  margin-top: 12px;
+}
+
+.empty {
+  color: #8e859b;
+  text-align: center;
+  padding: 28px 10px;
+  font-size: 13px;
+}
+
+.clear {
+  background: transparent;
+  color: #ed9aab;
+  font-size: 12px;
+  margin-top: 12px;
+}
+
+.send-button {
+  width: 100%;
+  background: #bb9bea;
+  color: #21172e;
+  padding: 17px;
+  border-radius: 12px;
+  font-size: 14px;
+  margin-top: 20px;
+}
+
+.note {
+  text-align: center;
+  color: #8e859b;
+  font-size: 11px;
+  line-height: 1.6;
+  margin-top: 18px;
+}
+
+footer {
+  text-align: center;
+  color: #716a7d;
+  font-size: 11px;
+  margin-top: 35px;
+}
+
+@media (max-width: 380px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<header>
+  <div>
+    <div class="logo">seesaw<span>.</span></div>
+    <div class="subtitle">YOUR MUSIC, YOUR HISTORY.</div>
+  </div>
+  <div class="status">PERSONAL APP</div>
+</header>
+
+<h1>Adicionar scrobbles</h1>
+<p class="description">
+  Registre suas músicas manualmente e organize seu histórico musical.
+</p>
+
+<section class="panel">
+  <div class="panel-title">✦ Informações da música</div>
+
+  <form id="musicForm">
+
+    <label for="title">NOME DA MÚSICA *</label>
+    <input id="title" type="text" placeholder="Ex: Cosmic" required>
+
+    <label for="artist">ARTISTA *</label>
+    <input id="artist" type="text" placeholder="Ex: Red Velvet" required>
+
+    <label for="album">ÁLBUM</label>
+    <input id="album" type="text" placeholder="Ex: Cosmic">
+
+    <label for="quantity">QUANTIDADE DE SCROBBLES *</label>
+    <input id="quantity" type="number" min="1" max="1000"
+      value="1" required>
+
+    <div class="row">
+      <div>
+        <label for="date">DATA (OPCIONAL)</label>
+        <input id="date" type="date">
+      </div>
+      <div>
+        <label for="time">HORÁRIO (OPCIONAL)</label>
+        <input id="time" type="time">
+      </div>
+    </div>
+
+    <button class="add-button" type="submit">
+      + ADICIONAR À LISTA
+    </button>
+
+  </form>
+</section>
+
+<div class="stats">
+  <div class="stat">
+    <small>MÚSICAS NA LISTA</small>
+    <strong id="trackTotal">0</strong>
+  </div>
+  <div class="stat">
+    <small>TOTAL DE SCROBBLES</small>
+    <strong id="scrobbleTotal">0</strong>
+  </div>
+</div>
+
+<section class="panel">
+  <div class="panel-title">♫ Sua lista de músicas</div>
+  <div id="trackList">
+    <div class="empty">
+      Sua lista está vazia.<br>
+      Adicione sua primeira música!
+    </div>
+  </div>
+
+  <button class="clear" id="clearButton" type="button">
+    Limpar lista
+  </button>
+</section>
+
+<button class="send-button" id="sendButton" type="button">
+  ENVIAR SCROBBLES →
+</button>
+
+<p class="note">
+  SEESAW ainda está em desenvolvimento.<br>
+  O envio real ao Last.fm será ativado após a integração.
+</p>
+
+<footer>SEESAW © 2026 · MADE FOR MUSIC LOVERS</footer>
+
+</div>
+
+<script>
+const form = document.getElementById("musicForm");
+const trackList = document.getElementById("trackList");
+const trackTotal = document.getElementById("trackTotal");
+const scrobbleTotal = document.getElementById("scrobbleTotal");
+
+let tracks = [];
+
+function render() {
+  trackList.innerHTML = "";
+
+  if (tracks.length === 0) {
+    trackList.innerHTML = `
+      <div class="empty">
+        Sua lista está vazia.<br>
+        Adicione sua primeira música!
+      </div>`;
+  }
+
+  tracks.forEach((track, index) => {
+    const item = document.createElement("div");
+    item.className = "track";
+
+    const name = document.createElement("div");
+    name.className = "track-name";
+    name.textContent = track.title;
+
+    const artist = document.createElement("div");
+    artist.className = "track-artist";
+    artist.textContent = track.artist;
+
+    const album = document.createElement("div");
+    album.className = "track-album";
+    album.textContent = track.album
+      ? "Álbum: " + track.album
+      : "Álbum não informado";
+
+    const count = document.createElement("div");
+    count.className = "track-count";
+    count.textContent = track.quantity.toLocaleString("pt-BR") + " scrobbles";
+
+    const top = document.createElement("div");
+    top.className = "track-top";
+
+    const info = document.createElement("div");
+    info.append(name, artist, album);
+
+    top.append(info, count);
+    item.append(top);
+
+    const date = document.createElement("div");
+    date.className = "track-date";
+    date.textContent = track.date
+      ? "Data: " + track.date + (track.time ? " · " + track.time : "")
+      : "Data e horário: atuais (padrão)";
+
+    item.append(date);
+
+    const remove = document.createElement("button");
+    remove.className = "remove";
+    remove.textContent = "✕ Remover";
+    remove.type = "button";
+    remove.addEventListener("click", () => {
+      tracks.splice(index, 1);
+      render();
+    });
+
+    item.append(remove);
+    trackList.append(item);
+  });
+
+  trackTotal.textContent = tracks.length.toLocaleString("pt-BR");
+
+  const total = tracks.reduce((sum, track) => {
+    return sum + track.quantity;
+  }, 0);
+
+  scrobbleTotal.textContent = total.toLocaleString("pt-BR");
+}
+
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const title = document.getElementById("title").value.trim();
+  const artist = document.getElementById("artist").value.trim();
+  const album = document.getElementById("album").value.trim();
+  const quantity = Number(document.getElementById("quantity").value);
+  const date = document.getElementById("date").value;
+  const time = document.getElementById("time").value;
+
+  if (!title || !artist) {
+    alert("Preencha o nome da música e o artista.");
+    return;
+  }
+
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1000) {
+    alert("Cada música pode ter entre 1 e 1.000 scrobbles.");
+    return;
+  }
+
+  tracks.push({ title, artist, album, quantity, date, time });
+
+  form.reset();
+  document.getElementById("quantity").value = 1;
+
+  render();
+});
+
+document.getElementById("clearButton").addEventListener("click", () => {
+  if (tracks.length === 0) return;
+
+  if (confirm("Deseja realmente limpar toda a lista?")) {
+    tracks = [];
+    render();
+  }
+});
+
+document.getElementById("sendButton").addEventListener("click", () => {
+  if (tracks.length === 0) {
+    alert("Adicione pelo menos uma música primeiro!");
+    return;
+  }
+
+  alert("Sua lista está preparada! A integração com o Last.fm será adicionada na próxima etapa. Nenhum scrobble foi enviado ainda.");
+});
+
+render();
+</script>
+</body>
+</html>
+
