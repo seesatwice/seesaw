@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -51,6 +50,10 @@ button:disabled{opacity:.5;cursor:wait}
 .empty{color:#8e859b;text-align:center;padding:28px 10px;font-size:13px;line-height:1.6}
 .clear{background:transparent;color:#ed9aab;font-size:12px;margin-top:12px}
 .send-button{margin-top:20px}
+.progress-wrap{display:none;margin-top:14px;background:#292439;border:1px solid #403750;border-radius:12px;padding:13px}
+.progress-label{display:flex;justify-content:space-between;gap:10px;color:#d0b9f4;font-size:12px;margin-bottom:9px}
+.progress-track{height:8px;background:#171522;border-radius:20px;overflow:hidden}
+.progress-fill{height:100%;width:0%;background:#bb9bea;transition:width .2s}
 .note{text-align:center;color:#8e859b;font-size:11px;line-height:1.6;margin-top:18px}
 .history-item{background:#292439;border:1px solid #403750;border-radius:12px;padding:14px;margin-bottom:11px}
 .history-top{display:flex;justify-content:space-between;gap:10px;align-items:center}
@@ -135,6 +138,7 @@ footer{text-align:center;color:#716a7d;font-size:11px;margin-top:35px}
 </section>
 
 <button class="send-button" id="sendButton" type="button">ENVIAR SCROBBLES →</button>
+<div class="progress-wrap" id="progressWrap"><div class="progress-label"><span id="progressText">Preparando envio...</span><span id="progressPercent">0%</span></div><div class="progress-track"><div class="progress-fill" id="progressFill"></div></div></div>
 <p class="note" id="appNote">Sua lista e seu histórico são salvos neste dispositivo.</p>
 
 <section class="panel" style="margin-top:28px">
@@ -163,6 +167,10 @@ const sessionKeyElement = document.getElementById("sessionKey");
 const sendButton = document.getElementById("sendButton");
 const appNote = document.getElementById("appNote");
 const historyList = document.getElementById("historyList");
+const progressWrap = document.getElementById("progressWrap");
+const progressText = document.getElementById("progressText");
+const progressPercent = document.getElementById("progressPercent");
+const progressFill = document.getElementById("progressFill");
 
 let tracks = loadTracks();
 let history = loadHistory();
@@ -392,181 +400,406 @@ function render() {
   scrobbleTotal.textContent = total.toLocaleString("pt-BR");
   saveTracks();
 }
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#171522">
+<title>SEESAW — Manual Scrobbler</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#111019;color:#f7f3ff;font-family:Arial,sans-serif;min-height:100vh}
+.app{width:100%;max-width:650px;margin:auto;padding:25px 18px 45px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:35px}
+.logo{font-size:30px;font-weight:900;letter-spacing:-2px}
+.logo span{color:#bb9bea}
+.subtitle{color:#a79db7;font-size:11px;letter-spacing:2px;margin-top:5px}
+.status{background:#292439;color:#c7a8ff;padding:8px 12px;border-radius:20px;font-size:11px}
+h1{font-size:26px;margin-bottom:9px}
+.description{color:#a79db7;font-size:13px;margin-bottom:25px;line-height:1.5}
+.panel{background:#1d1a29;border:1px solid #302a40;border-radius:17px;padding:20px;margin-bottom:20px}
+.panel-title{font-size:15px;font-weight:bold;margin-bottom:20px}
+label{display:block;color:#bdb2ce;font-size:11px;font-weight:bold;margin-bottom:8px;letter-spacing:.7px}
+input{width:100%;background:#292439;color:white;border:1px solid #403750;border-radius:10px;padding:14px;font-size:14px;outline:none;margin-bottom:17px;color-scheme:dark}
+input:focus{border-color:#bb9bea}
+input::placeholder{color:#82788f}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button{cursor:pointer;border:none;font-weight:bold;transition:.2s}
+button:disabled{opacity:.5;cursor:wait}
+.primary-button,.add-button,.send-button{width:100%;background:#bb9bea;color:#21172e;padding:16px;border-radius:11px;font-size:14px}
+.primary-button:hover,.add-button:hover,.send-button:hover{background:#d0b9f4}
+.secondary-button{width:100%;background:#403750;color:#f7f3ff;padding:14px;border-radius:10px;font-size:13px;margin-top:10px}
+.help{color:#a79db7;font-size:12px;line-height:1.6;margin-top:12px}
+.message{display:none;padding:12px;border-radius:10px;font-size:12px;line-height:1.5;margin-top:14px;overflow-wrap:anywhere}
+.message.success{display:block;background:#20372d;color:#a7e5bd}
+.message.error{display:block;background:#40232e;color:#ffb5c5}
+.session-box{display:none;margin-top:16px;padding:14px;background:#292439;border:1px solid #55446d;border-radius:12px}
+.session-box label{margin-bottom:10px}
+.session-key{font-size:11px;line-height:1.5;color:#d0b9f4;overflow-wrap:anywhere;user-select:all;margin-bottom:12px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.stat{background:#1d1a29;border:1px solid #302a40;padding:17px;border-radius:14px}
+.stat small{color:#a79db7;font-size:11px}
+.stat strong{display:block;font-size:25px;margin-top:8px}
+.track{background:#292439;border:1px solid #403750;border-radius:12px;padding:14px;margin-bottom:11px}
+.track-top{display:flex;justify-content:space-between;gap:10px}
+.track-name{font-size:14px;font-weight:bold}
+.track-artist{color:#b9a9ce;font-size:12px;margin-top:5px}
+.track-album{color:#91879e;font-size:11px;margin-top:4px}
+.track-count{color:#d0b9f4;font-weight:bold;white-space:nowrap;font-size:12px}
+.track-date{color:#a79db7;font-size:11px;margin-top:10px}
+.remove{background:transparent;color:#ed9aab;font-size:12px;margin-top:12px}
+.empty{color:#8e859b;text-align:center;padding:28px 10px;font-size:13px;line-height:1.6}
+.clear{background:transparent;color:#ed9aab;font-size:12px;margin-top:12px}
+.send-button{margin-top:20px}
+.progress-wrap{display:none;margin-top:14px;background:#292439;border:1px solid #403750;border-radius:12px;padding:13px}
+.progress-label{display:flex;justify-content:space-between;gap:10px;color:#d0b9f4;font-size:12px;margin-bottom:9px}
+.progress-track{height:8px;background:#171522;border-radius:20px;overflow:hidden}
+.progress-fill{height:100%;width:0%;background:#bb9bea;transition:width .2s}
+.note{text-align:center;color:#8e859b;font-size:11px;line-height:1.6;margin-top:18px}
+.history-item{background:#292439;border:1px solid #403750;border-radius:12px;padding:14px;margin-bottom:11px}
+.history-top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.history-date{font-size:12px;color:#d0b9f4;font-weight:bold}
+.history-status{font-size:10px;padding:5px 8px;border-radius:20px;background:#20372d;color:#a7e5bd}
+.history-status.partial{background:#403522;color:#f4d49a}
+.history-details{font-size:12px;color:#b9a9ce;line-height:1.7;margin-top:10px}
+.history-total{font-size:14px;font-weight:bold;margin-top:8px}
+.history-clear{background:transparent;color:#ed9aab;font-size:12px;margin-top:12px}
+footer{text-align:center;color:#716a7d;font-size:11px;margin-top:35px}
+@media(max-width:380px){.row{grid-template-columns:1fr;gap:0}.history-top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="app">
 
-function renderHistory() {
-  historyList.innerHTML = "";
+<header>
+  <div>
+    <div class="logo">seesaw<span>.</span></div>
+    <div class="subtitle">YOUR MUSIC, YOUR HISTORY.</div>
+  </div>
+  <div class="status">PERSONAL APP</div>
+</header>
 
-  if (history.length === 0) {
-    historyList.innerHTML = '<div class="empty">Nenhum envio registrado ainda.</div>';
-    return;
+<h1>Adicionar scrobbles</h1>
+<p class="description">Registre suas músicas manualmente e organize seu histórico musical.</p>
+
+<section class="panel">
+  <div class="panel-title">♫ Conectar Last.fm</div>
+  <label for="accessPassword">SENHA PRIVADA DO SEESAW</label>
+  <input id="accessPassword" type="password" placeholder="Digite sua senha do SEESAW" autocomplete="off">
+  <button class="primary-button" id="connectButton" type="button">CONECTAR MINHA CONTA LAST.FM</button>
+  <p class="help">
+    1. Digite sua senha privada do SEESAW.<br>
+    2. Clique no botão e autorize o aplicativo na página do Last.fm.<br>
+    3. Volte para esta página e conclua a conexão.
+  </p>
+  <button class="secondary-button" id="finishButton" type="button" disabled>JÁ AUTORIZEI — CONCLUIR CONEXÃO</button>
+  <div id="authMessage" class="message"></div>
+  <div id="sessionBox" class="session-box">
+    <label>SUA SESSION KEY DO LAST.FM</label>
+    <div id="sessionKey" class="session-key"></div>
+    <button class="secondary-button" id="copySessionButton" type="button">COPIAR SESSION KEY</button>
+    <p class="help">Guarde essa chave com segurança.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-title">✦ Informações da música</div>
+  <form id="musicForm">
+    <label for="title">NOME DA MÚSICA *</label>
+    <input id="title" type="text" placeholder="Ex: Cosmic" required>
+    <label for="artist">ARTISTA *</label>
+    <input id="artist" type="text" placeholder="Ex: Red Velvet" required>
+    <label for="album">ÁLBUM</label>
+    <input id="album" type="text" placeholder="Ex: Cosmic">
+    <label for="quantity">QUANTIDADE DE SCROBBLES *</label>
+    <input id="quantity" type="number" min="1" max="1000" value="1" required>
+    <div class="row">
+      <div>
+        <label for="date">DATA (OPCIONAL)</label>
+        <input id="date" type="date">
+      </div>
+      <div>
+        <label for="time">HORÁRIO (OPCIONAL)</label>
+        <input id="time" type="time">
+      </div>
+    </div>
+    <button class="add-button" type="submit">+ ADICIONAR À LISTA</button>
+  </form>
+</section>
+
+<div class="stats">
+  <div class="stat"><small>MÚSICAS NA LISTA</small><strong id="trackTotal">0</strong></div>
+  <div class="stat"><small>TOTAL DE SCROBBLES</small><strong id="scrobbleTotal">0</strong></div>
+</div>
+
+<section class="panel">
+  <div class="panel-title">♫ Sua lista de músicas</div>
+  <div id="trackList"><div class="empty">Sua lista está vazia.<br>Adicione sua primeira música!</div></div>
+  <button class="clear" id="clearButton" type="button">Limpar lista</button>
+</section>
+
+<button class="send-button" id="sendButton" type="button">ENVIAR SCROBBLES →</button>
+<div class="progress-wrap" id="progressWrap"><div class="progress-label"><span id="progressText">Preparando envio...</span><span id="progressPercent">0%</span></div><div class="progress-track"><div class="progress-fill" id="progressFill"></div></div></div>
+<p class="note" id="appNote">Sua lista e seu histórico são salvos neste dispositivo.</p>
+
+<section class="panel" style="margin-top:28px">
+  <div class="panel-title">◷ Histórico de envios</div>
+  <div id="historyList"><div class="empty">Nenhum envio registrado ainda.</div></div>
+  <button class="history-clear" id="clearHistoryButton" type="button">Limpar histórico</button>
+</section>
+
+<footer>SEESAW © 2026 · MADE FOR MUSIC LOVERS</footer>
+</div>
+
+<script>
+const STORAGE_KEY = "seesaw_tracks_v1";
+const HISTORY_KEY = "seesaw_history_v1";
+
+const form = document.getElementById("musicForm");
+const trackList = document.getElementById("trackList");
+const trackTotal = document.getElementById("trackTotal");
+const scrobbleTotal = document.getElementById("scrobbleTotal");
+const passwordInput = document.getElementById("accessPassword");
+const connectButton = document.getElementById("connectButton");
+const finishButton = document.getElementById("finishButton");
+const authMessage = document.getElementById("authMessage");
+const sessionBox = document.getElementById("sessionBox");
+const sessionKeyElement = document.getElementById("sessionKey");
+const sendButton = document.getElementById("sendButton");
+const appNote = document.getElementById("appNote");
+const historyList = document.getElementById("historyList");
+const progressWrap = document.getElementById("progressWrap");
+const progressText = document.getElementById("progressText");
+const progressPercent = document.getElementById("progressPercent");
+const progressFill = document.getElementById("progressFill");
+
+let tracks = loadTracks();
+let history = loadHistory();
+let pendingToken = null;
+let currentSessionKey = null;
+
+function loadTracks() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return [];
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(track =>
+      track &&
+      typeof track.title === "string" &&
+      typeof track.artist === "string" &&
+      Number.isInteger(track.quantity) &&
+      track.quantity >= 1 &&
+      track.quantity <= 1000
+    );
+  } catch {
+    return [];
   }
-
-  history.forEach(item => {
-    const card = document.createElement("div");
-    card.className = "history-item";
-
-    const top = document.createElement("div");
-    top.className = "history-top";
-
-    const date = document.createElement("div");
-    date.className = "history-date";
-    date.textContent = new Date(item.date).toLocaleString("pt-BR");
-
-    const status = document.createElement("span");
-    status.className = "history-status" + (item.ignored > 0 ? " partial" : "");
-    status.textContent = item.ignored > 0 ? "PARCIAL" : "CONCLUÍDO";
-
-    top.append(date, status);
-
-    const details = document.createElement("div");
-    details.className = "history-details";
-    details.textContent = item.trackCount + " música(s) na operação";
-
-    const total = document.createElement("div");
-    total.className = "history-total";
-    total.textContent = "Aceitos: " + item.accepted.toLocaleString("pt-BR") +
-      " · Ignorados: " + item.ignored.toLocaleString("pt-BR");
-
-    card.append(top, details, total);
-    historyList.append(card);
-  });
 }
 
-form.addEventListener("submit", event => {
-  event.preventDefault();
+function loadHistory() {
+  try {
+    const saved = localStorage.getItem(HISTORY_KEY);
+    if (!saved) return [];
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(item =>
+      item &&
+      typeof item.date === "string" &&
+      Number.isFinite(item.accepted) &&
+      Number.isFinite(item.ignored)
+    );
+  } catch {
+    return [];
+  }
+}
 
-  const title = document.getElementById("title").value.trim();
-  const artist = document.getElementById("artist").value.trim();
-  const album = document.getElementById("album").value.trim();
-  const quantity = Number(document.getElementById("quantity").value);
-  const date = document.getElementById("date").value;
-  const time = document.getElementById("time").value;
+function saveTracks() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tracks));
+    return true;
+  } catch {
+    appNote.textContent = "Não foi possível salvar a lista neste navegador.";
+    return false;
+  }
+}
 
-  if (!title || !artist) {
-    alert("Preencha o nome da música e o artista.");
-    return;
+function saveHistory() {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    return true;
+  } catch {
+    appNote.textContent = "Não foi possível salvar o histórico neste navegador.";
+    return false;
+  }
+}
+
+function showAuthMessage(message, type) {
+  authMessage.textContent = message;
+  authMessage.className = "message " + type;
+}
+
+async function callServer(payload) {
+  const response = await fetch("/api/lastfm", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload)
+  });
+
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error("O servidor retornou uma resposta inválida.");
   }
 
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1000) {
-    alert("Cada música pode ter entre 1 e 1.000 scrobbles.");
-    return;
+  if (!response.ok) {
+    throw new Error(data.error || "Não foi possível conectar ao servidor.");
   }
 
-  tracks.push({title, artist, album, quantity, date, time});
-  form.reset();
-  document.getElementById("quantity").value = 1;
-  render();
-});
+  return data;
+}
 
-document.getElementById("clearButton").addEventListener("click", () => {
-  if (tracks.length === 0) return;
-  if (confirm("Deseja realmente limpar toda a lista?")) {
-    tracks = [];
-    render();
-  }
-});
-
-document.getElementById("clearHistoryButton").addEventListener("click", () => {
-  if (history.length === 0) return;
-  if (confirm("Deseja realmente apagar todo o histórico de envios?")) {
-    history = [];
-    saveHistory();
-    renderHistory();
-  }
-});
-
-sendButton.addEventListener("click", async () => {
-  if (tracks.length === 0) {
-    alert("Adicione pelo menos uma música primeiro!");
-    return;
-  }
-
+connectButton.addEventListener("click", async () => {
   const password = passwordInput.value.trim();
 
   if (!password) {
-    alert("Digite sua senha privada do SEESAW na seção Conectar Last.fm.");
-    passwordInput.focus();
+    showAuthMessage("Digite sua senha privada do SEESAW.", "error");
     return;
   }
 
-  const total = tracks.reduce((sum, track) => sum + track.quantity, 0);
-
-  if (!confirm(`Enviar ${total} scrobbles para sua conta Last.fm?`)) return;
-
-  sendButton.disabled = true;
-  sendButton.textContent = "ENVIANDO...";
-  appNote.textContent = "Enviando seus scrobbles. Não feche esta página.";
+  const authWindow = window.open("about:blank", "_blank");
+  connectButton.disabled = true;
+  connectButton.textContent = "CONECTANDO...";
 
   try {
-    const payloadTracks = tracks.map(track => {
-      const now = new Date();
+    const data = await callServer({action:"token", password});
+    pendingToken = data.token;
 
-      const date = track.date ||
-        `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
-
-      const time = track.time ||
-        `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
-
-      const chosenDate = new Date(`${date}T${time}:00`);
-
-      if (Number.isNaN(chosenDate.getTime())) {
-        throw new Error("Data ou horário inválido.");
-      }
-
-      return {
-        title:track.title,
-        artist:track.artist,
-        album:track.album,
-        quantity:track.quantity,
-        timestamp:Math.floor(chosenDate.getTime()/1000)
-      };
-    });
-
-    const result = await callServer({
-      action:"scrobble",
-      password,
-      tracks:payloadTracks
-    });
-
-    const accepted = Number(result.accepted || 0);
-    const ignored = Number(result.ignored || 0);
-
-    history.unshift({
-      date:new Date().toISOString(),
-      accepted,
-      ignored,
-      total,
-      trackCount:tracks.length
-    });
-
-    saveHistory();
-    renderHistory();
-
-    alert(
-      `Resultado do envio!\n\n` +
-      `Aceitos pelo Last.fm: ${accepted}\n` +
-      `Ignorados pelo Last.fm: ${ignored}`
-    );
-
-    if (accepted === total && ignored === 0) {
-      tracks = [];
-      render();
-      appNote.textContent = "Scrobbles enviados com sucesso!";
+    if (authWindow) {
+      authWindow.location.href = data.auth_url;
     } else {
-      appNote.textContent = "Envio parcial registrado no histórico. Confira o Last.fm antes de tentar novamente.";
+      window.location.href = data.auth_url;
+      return;
     }
 
+    finishButton.disabled = false;
+    showAuthMessage("Autorize o SEESAW no Last.fm e volte para esta página.", "success");
   } catch (error) {
-    alert("Não foi possível confirmar o envio:\n" + error.message);
-    appNote.textContent = "Ocorreu um erro. Confira o Last.fm antes de tentar novamente.";
+    if (authWindow) authWindow.close();
+    showAuthMessage(error.message, "error");
   } finally {
-    sendButton.disabled = false;
-    sendButton.textContent = "ENVIAR SCROBBLES →";
+    connectButton.disabled = false;
+    connectButton.textContent = "CONECTAR MINHA CONTA LAST.FM";
   }
 });
 
-render();
-renderHistory();
-</script>
-</body>
-</html>
+finishButton.addEventListener("click", async () => {
+  const password = passwordInput.value.trim();
+
+  if (!password) {
+    showAuthMessage("Digite sua senha privada do SEESAW.", "error");
+    return;
+  }
+
+  if (!pendingToken) {
+    showAuthMessage("Primeiro clique em Conectar minha conta Last.fm.", "error");
+    return;
+  }
+
+  finishButton.disabled = true;
+  finishButton.textContent = "FINALIZANDO...";
+
+  try {
+    const data = await callServer({
+      action:"session",
+      password,
+      token:pendingToken
+    });
+
+    currentSessionKey = data.session_key;
+    pendingToken = null;
+    sessionKeyElement.textContent = currentSessionKey;
+    sessionBox.style.display = "block";
+    showAuthMessage("Conta Last.fm autorizada: " + data.username, "success");
+    finishButton.textContent = "CONEXÃO CONCLUÍDA";
+  } catch (error) {
+    showAuthMessage(error.message, "error");
+    finishButton.disabled = false;
+    finishButton.textContent = "JÁ AUTORIZEI — CONCLUIR CONEXÃO";
+  }
+});
+
+document.getElementById("copySessionButton").addEventListener("click", async () => {
+  if (!currentSessionKey) return;
+  try {
+    await navigator.clipboard.writeText(currentSessionKey);
+    showAuthMessage("Session Key copiada. Guarde-a com segurança.", "success");
+  } catch {
+    showAuthMessage("Selecione e copie a chave manualmente.", "error");
+  }
+});
+
+function render() {
+  trackList.innerHTML = "";
+
+  if (tracks.length === 0) {
+    trackList.innerHTML = '<div class="empty">Sua lista está vazia.<br>Adicione sua primeira música!</div>';
+  }
+
+  tracks.forEach((track, index) => {
+    const item = document.createElement("div");
+    item.className = "track";
+
+    const top = document.createElement("div");
+    top.className = "track-top";
+
+    const info = document.createElement("div");
+    const name = document.createElement("div");
+    name.className = "track-name";
+    name.textContent = track.title;
+
+    const artist = document.createElement("div");
+    artist.className = "track-artist";
+    artist.textContent = track.artist;
+
+    const album = document.createElement("div");
+    album.className = "track-album";
+    album.textContent = track.album ? "Álbum: " + track.album : "Álbum não informado";
+
+    info.append(name, artist, album);
+
+    const count = document.createElement("div");
+    count.className = "track-count";
+    count.textContent = track.quantity.toLocaleString("pt-BR") + " scrobbles";
+
+    top.append(info, count);
+    item.append(top);
+
+    const date = document.createElement("div");
+    date.className = "track-date";
+    date.textContent = track.date
+      ? "Data: " + track.date + (track.time ? " · " + track.time : "")
+      : "Data e horário: atuais (padrão)";
+    item.append(date);
+
+    const remove = document.createElement("button");
+    remove.className = "remove";
+    remove.textContent = "✕ Remover";
+    remove.type = "button";
+    remove.addEventListener("click", () => {
+      tracks.splice(index, 1);
+      render();
+    });
+
+    item.append(remove);
+    trackList.append(item);
+  });
+
+  trackTotal.textContent = tracks.length.toLocaleString("pt-BR");
+  const total = tracks.reduce((sum, track) => sum + track.quantity, 0);
+  scrobbleTotal.textContent = total.toLocaleString("pt-BR");
+  saveTracks();
+}
+  
