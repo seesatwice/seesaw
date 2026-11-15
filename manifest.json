@@ -1,0 +1,19 @@
+{
+  "name": "SEESAW",
+  "short_name": "SEESAW",
+  "description": "YOUR MUSIC, YOUR HISTORY.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090909",
+  "theme_color": "#090909",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
