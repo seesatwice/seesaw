@@ -6,22 +6,26 @@ const API_URL = "https://ws.audioscrobbler.com/2.0/";
 function getCredentials() {
   const apiKey = process.env.LASTFM_API_KEY;
   const secret = process.env.LASTFM_SHARED_SECRET;
+  const password = process.env.SEESAW_ACCESS_PASSWORD;
 
-  if (!apiKey || !secret) {
-    throw new Error("As credenciais do Last.fm não estão configuradas na Vercel.");
+  if (!apiKey || !secret || !password) {
+    throw new Error("Configuração incompleta na Vercel.");
   }
 
-  return { apiKey, secret };
+  return { apiKey, secret, password };
 }
 
 function signParams(params, secret) {
   const signature = Object.keys(params)
-    .filter((key) => key !== "format" && key !== "callback")
+    .filter(key => key !== "format" && key !== "callback")
     .sort()
-    .map((key) => key + params[key])
+    .map(key => key + params[key])
     .join("") + secret;
 
-  return crypto.createHash("md5").update(signature, "utf8").digest("hex");
+  return crypto
+    .createHash("md5")
+    .update(signature, "utf8")
+    .digest("hex");
 }
 
 async function lastfmRequest(params, secret) {
@@ -45,14 +49,26 @@ async function lastfmRequest(params, secret) {
   const data = await response.json();
 
   if (!response.ok || data.error) {
-    throw new Error(data.message || "Erro na comunicação com o Last.fm.");
+    throw new Error(data.message || "Erro na comunicação com Last.fm.");
   }
 
   return data;
 }
 
+function checkPassword(input, expected) {
+  if (typeof input !== "string") return false;
+
+  const a = Buffer.from(input);
+  const b = Buffer.from(expected);
+
+  if (a.length !== b.length) return false;
+
+  return crypto.timingSafeEqual(a, b);
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
 
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -61,35 +77,41 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { apiKey, secret } = getCredentials();
-    const { action } = req.body || {};
+    const { apiKey, secret, password } = getCredentials();
+    const body = req.body || {};
 
-    // 1. Iniciar autenticação
+    if (!checkPassword(body.password, password)) {
+      return res.status(401).json({
+        error: "Senha do SEESAW incorreta."
+      });
+    }
+
+    const { action } = body;
+
+    // Iniciar autenticação
     if (action === "token") {
       const data = await lastfmRequest({
         method: "auth.getToken",
         api_key: apiKey
       }, secret);
 
-      const token = data.token;
-
       return res.status(200).json({
-        token,
+        token: data.token,
         auth_url:
           "https://www.last.fm/api/auth/?api_key=" +
           encodeURIComponent(apiKey) +
           "&token=" +
-          encodeURIComponent(token)
+          encodeURIComponent(data.token)
       });
     }
 
-    // 2. Finalizar autenticação
+    // Finalizar autenticação
     if (action === "session") {
-      const token = req.body.token;
+      const token = body.token;
 
       if (!token || typeof token !== "string") {
         return res.status(400).json({
-          error: "Token de autenticação não informado."
+          error: "Token não informado."
         });
       }
 
@@ -101,12 +123,11 @@ module.exports = async function handler(req, res) {
 
       return res.status(200).json({
         username: data.session.name,
-        session_key: data.session.key,
-        message: "Autenticação concluída."
+        session_key: data.session.key
       });
     }
 
-    // 3. Enviar scrobbles
+    // Enviar scrobbles
     if (action === "scrobble") {
       const sessionKey = process.env.LASTFM_SESSION_KEY;
 
@@ -116,17 +137,15 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      const tracks = req.body.tracks;
+      const tracks = body.tracks;
 
-      if (!Array.isArray(tracks) || tracks.length === 0) {
+      if (
+        !Array.isArray(tracks) ||
+        tracks.length === 0 ||
+        tracks.length > 100
+      ) {
         return res.status(400).json({
-          error: "Nenhuma música foi enviada."
-        });
-      }
-
-      if (tracks.length > 100) {
-        return res.status(400).json({
-          error: "Envie no máximo 100 músicas por operação."
+          error: "A lista deve conter entre 1 e 100 músicas."
         });
       }
 
@@ -147,28 +166,24 @@ module.exports = async function handler(req, res) {
           !artist ||
           !Number.isInteger(quantity) ||
           quantity < 1 ||
-          quantity > 1000
+          quantity > 1000 ||
+          !Number.isSafeInteger(endTimestamp) ||
+          endTimestamp <= 0
         ) {
           return res.status(400).json({
-            error: "Dados de música inválidos. Confira título, artista e quantidade."
+            error: "Dados de música inválidos."
           });
         }
 
-        if (!Number.isFinite(endTimestamp) || endTimestamp <= 0) {
-          return res.status(400).json({
-            error: "Data ou horário inválido."
-          });
-        }
-
-        // A API do Last.fm aceita no máximo 50 scrobbles por chamada.
-        // Distribuímos os horários em intervalos de 3 minutos e 30 segundos.
         const timestamps = Array.from(
           { length: quantity },
-          (_, index) => endTimestamp - (quantity - 1 - index) * 210
+          (_, index) =>
+            endTimestamp - (quantity - 1 - index) * 210
         );
 
         for (let start = 0; start < quantity; start += 50) {
           const batch = timestamps.slice(start, start + 50);
+
           const params = {
             method: "track.scrobble",
             api_key: apiKey,
@@ -176,8 +191,6 @@ module.exports = async function handler(req, res) {
           };
 
           batch.forEach((timestamp, index) => {
-            const position = start + index;
-
             params[`artist[${index}]`] = artist;
             params[`track[${index}]`] = title;
             params[`timestamp[${index}]`] = timestamp;
@@ -188,8 +201,7 @@ module.exports = async function handler(req, res) {
           });
 
           const data = await lastfmRequest(params, secret);
-          const scrobbles = data.scrobbles || {};
-          const attributes = scrobbles["@attr"] || {};
+          const attributes = (data.scrobbles || {})["@attr"] || {};
 
           const accepted = Number(attributes.accepted || 0);
           const ignored = Number(attributes.ignored || 0);
@@ -219,11 +231,10 @@ module.exports = async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error("SEESAW Last.fm:", error.message);
+    console.error("SEESAW:", error.message);
 
     return res.status(500).json({
       error: error.message || "Erro interno do servidor."
     });
   }
 };
-
