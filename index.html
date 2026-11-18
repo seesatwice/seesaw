@@ -2,146 +2,402 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#090909">  
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#171522">
-<title>SEESAW — Manual Scrobbler</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#111019;color:#f7f3ff;font-family:Arial,sans-serif;min-height:100vh}
-.app{width:100%;max-width:650px;margin:auto;padding:25px 18px 45px}
-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:35px}
-.logo{font-size:30px;font-weight:900;letter-spacing:-2px}
-.logo span{color:#bb9bea}
-.subtitle{color:#a79db7;font-size:11px;letter-spacing:2px;margin-top:5px}
-.status{background:#292439;color:#c7a8ff;padding:8px 12px;border-radius:20px;font-size:11px}
-h1{font-size:26px;margin-bottom:9px}
-.description{color:#a79db7;font-size:13px;margin-bottom:25px;line-height:1.5}
-.panel{background:#1d1a29;border:1px solid #302a40;border-radius:17px;padding:20px;margin-bottom:20px}
-.panel-title{font-size:15px;font-weight:bold;margin-bottom:20px}
-label{display:block;color:#bdb2ce;font-size:11px;font-weight:bold;margin-bottom:8px;letter-spacing:.7px}
-input{width:100%;background:#292439;color:white;border:1px solid #403750;border-radius:10px;padding:14px;font-size:14px;outline:none;margin-bottom:17px;color-scheme:dark}
-input:focus{border-color:#bb9bea}
-input::placeholder{color:#82788f}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-button{cursor:pointer;border:none;font-weight:bold;transition:.2s}
-button:disabled{opacity:.5;cursor:wait}
-.primary-button,.add-button,.send-button{width:100%;background:#bb9bea;color:#21172e;padding:16px;border-radius:11px;font-size:14px}
-.primary-button:hover,.add-button:hover,.send-button:hover{background:#d0b9f4}
-.secondary-button{width:100%;background:#403750;color:#f7f3ff;padding:14px;border-radius:11px;font-size:13px;margin-top:10px}
-.help{color:#a79db7;font-size:12px;line-height:1.6;margin-top:12px}
-.message{display:none;padding:12px;border-radius:10px;font-size:12px;line-height:1.5;margin-top:14px;overflow-wrap:anywhere}
-.message.success{display:block;background:#20372d;color:#a7e5bd}
-.message.error{display:block;background:#40232e;color:#ffb5c5}
-.session-box{display:none;margin-top:16px;padding:14px;background:#292439;border:1px solid #55446d;border-radius:12px}
-.session-box label{margin-bottom:10px}
-.session-key{font-size:11px;line-height:1.5;color:#d0b9f4;overflow-wrap:anywhere;user-select:all;margin-bottom:12px}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
-.stat{background:#1d1a29;border:1px solid #302a40;padding:17px;border-radius:14px}
-.stat small{color:#a79db7;font-size:11px}
-.stat strong{display:block;font-size:25px;margin-top:8px}
-.track{background:#292439;border:1px solid #403750;border-radius:12px;padding:14px;margin-bottom:11px}
-.track-top{display:flex;justify-content:space-between;gap:10px}
-.track-name{font-size:14px;font-weight:bold}
-.track-artist{color:#b9a9ce;font-size:12px;margin-top:5px}
-.track-album{color:#91879e;font-size:11px;margin-top:4px}
-.track-count{color:#d0b9f4;font-weight:bold;white-space:nowrap}
-.track-date{color:#a79db7;font-size:11px;margin-top:10px}
-.remove{background:transparent;color:#ed9aab;font-size:12px;margin-top:12px}
-.empty{color:#8e859b;text-align:center;padding:28px 10px;font-size:13px}
-.clear{background:transparent;color:#ed9aab;font-size:12px;margin-top:12px}
-.send-button{margin-top:20px}
-.note{text-align:center;color:#8e859b;font-size:11px;line-height:1.6;margin-top:18px}
-footer{text-align:center;color:#716a7d;font-size:11px;margin-top:35px}
-@media(max-width:380px){.row{grid-template-columns:1fr;gap:0}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090909">
+  <link rel="manifest" href="/manifest.json">
+  <title>SEESAW — Manual Scrobbler</title>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #111019;
+      color: #f7f3ff;
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 650px;
+      margin: auto;
+      padding: 25px 18px 45px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 35px;
+    }
+
+    .logo {
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: -2px;
+    }
+
+    .logo span { color: #bb9bea; }
+
+    .subtitle {
+      color: #a79db7;
+      font-size: 11px;
+      letter-spacing: 2px;
+      margin-top: 5px;
+    }
+
+    .status {
+      background: #292439;
+      color: #c7a8ff;
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+    }
+
+    h1 { font-size: 26px; margin-bottom: 9px; }
+
+    .description {
+      color: #a79db7;
+      font-size: 13px;
+      margin-bottom: 25px;
+      line-height: 1.5;
+    }
+
+    .panel {
+      background: #1d1a29;
+      border: 1px solid #302a40;
+      border-radius: 17px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      color: #bdb2ce;
+      font-size: 11px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      letter-spacing: .7px;
+    }
+
+    input {
+      width: 100%;
+      background: #292439;
+      color: white;
+      border: 1px solid #403750;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 17px;
+      color-scheme: dark;
+    }
+
+    input:focus { border-color: #bb9bea; }
+    input::placeholder { color: #82788f; }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      font-weight: bold;
+      transition: .2s;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: wait;
+    }
+
+    .primary-button, .add-button, .send-button {
+      width: 100%;
+      background: #bb9bea;
+      color: #21172e;
+      padding: 16px;
+      border-radius: 11px;
+      font-size: 14px;
+    }
+
+    .primary-button:hover, .add-button:hover, .send-button:hover {
+      background: #d0b9f4;
+    }
+
+    .secondary-button {
+      width: 100%;
+      background: #403750;
+      color: #f7f3ff;
+      padding: 14px;
+      border-radius: 11px;
+      font-size: 13px;
+      margin-top: 10px;
+    }
+
+    .help {
+      color: #a79db7;
+      font-size: 12px;
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+
+    .message {
+      display: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .message.success {
+      display: block;
+      background: #20372d;
+      color: #a7e5bd;
+    }
+
+    .message.error {
+      display: block;
+      background: #40232e;
+      color: #ffb5c5;
+    }
+
+    .session-box {
+      display: none;
+      margin-top: 16px;
+      padding: 14px;
+      background: #292439;
+      border: 1px solid #55446d;
+      border-radius: 12px;
+    }
+
+    .session-box label { margin-bottom: 10px; }
+
+    .session-key {
+      font-size: 11px;
+      line-height: 1.5;
+      color: #d0b9f4;
+      overflow-wrap: anywhere;
+      user-select: all;
+      margin-bottom: 12px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: #1d1a29;
+      border: 1px solid #302a40;
+      padding: 17px;
+      border-radius: 14px;
+    }
+
+    .stat small { color: #a79db7; font-size: 11px; }
+
+    .stat strong {
+      display: block;
+      font-size: 25px;
+      margin-top: 8px;
+    }
+
+    .track {
+      background: #292439;
+      border: 1px solid #403750;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 11px;
+    }
+
+    .track-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .track-name { font-size: 14px; font-weight: bold; }
+    .track-artist { color: #b9a9ce; font-size: 12px; margin-top: 5px; }
+    .track-album { color: #91879e; font-size: 11px; margin-top: 4px; }
+    .track-count { color: #d0b9f4; font-weight: bold; white-space: nowrap; }
+    .track-date { color: #a79db7; font-size: 11px; margin-top: 10px; }
+
+    .remove {
+      background: transparent;
+      color: #ed9aab;
+      font-size: 12px;
+      margin-top: 12px;
+    }
+
+    .empty {
+      color: #8e859b;
+      text-align: center;
+      padding: 28px 10px;
+      font-size: 13px;
+    }
+
+    .clear {
+      background: transparent;
+      color: #ed9aab;
+      font-size: 12px;
+      margin-top: 12px;
+    }
+
+    .send-button { margin-top: 20px; }
+
+    .note {
+      text-align: center;
+      color: #8e859b;
+      font-size: 11px;
+      line-height: 1.6;
+      margin-top: 18px;
+    }
+
+    footer {
+      text-align: center;
+      color: #716a7d;
+      font-size: 11px;
+      margin-top: 35px;
+    }
+
+    @media(max-width:380px) {
+      .row { grid-template-columns: 1fr; gap: 0; }
+    }
+  </style>
 </head>
+
 <body>
 <div class="app">
-<header>
-  <div>
-    <div class="logo">seesaw<span>.</span></div>
-    <div class="subtitle">YOUR MUSIC, YOUR HISTORY.</div>
-  </div>
-  <div class="status">PERSONAL APP</div>
-</header>
 
-<h1>Adicionar scrobbles</h1>
-<p class="description">Registre suas músicas manualmente e organize seu histórico musical.</p>
+  <header>
+    <div>
+      <div class="logo">seesaw<span>.</span></div>
+      <div class="subtitle">YOUR MUSIC, YOUR HISTORY.</div>
+    </div>
+    <div class="status">PERSONAL APP</div>
+  </header>
 
-<section class="panel">
-  <div class="panel-title">♫ Conectar Last.fm</div>
-  <label for="accessPassword">SENHA PRIVADA DO SEESAW</label>
-  <input id="accessPassword" type="password" placeholder="Digite sua senha do SEESAW" autocomplete="off">
-
-  <button class="primary-button" id="connectButton" type="button">CONECTAR MINHA CONTA LAST.FM</button>
-
-  <p class="help">
-    1. Digite sua senha privada do SEESAW.<br>
-    2. Clique no botão e autorize o aplicativo no Last.fm.<br>
-    3. Volte para esta página e conclua a conexão.
+  <h1>Adicionar scrobbles</h1>
+  <p class="description">
+    Registre suas músicas manualmente e organize seu histórico musical.
   </p>
 
-  <button class="secondary-button" id="finishButton" type="button" disabled>JÁ AUTORIZEI — CONCLUIR CONEXÃO</button>
+  <section class="panel">
+    <div class="panel-title">♫ Conectar Last.fm</div>
 
-  <div id="authMessage" class="message"></div>
+    <label for="accessPassword">SENHA PRIVADA DO SEESAW</label>
+    <input
+      id="accessPassword"
+      type="password"
+      placeholder="Digite sua senha do SEESAW"
+      autocomplete="off"
+    >
 
-  <div id="sessionBox" class="session-box">
-    <label>SUA SESSION KEY DO LAST.FM</label>
-    <div id="sessionKey" class="session-key"></div>
-    <button class="secondary-button" id="copySessionButton" type="button">COPIAR SESSION KEY</button>
-    <p class="help">Guarde essa chave. Ela deve estar cadastrada na Vercel como LASTFM_SESSION_KEY.</p>
-  </div>
-</section>
+    <button class="primary-button" id="connectButton" type="button">
+      CONECTAR MINHA CONTA LAST.FM
+    </button>
 
-<section class="panel">
-  <div class="panel-title">✦ Informações da música</div>
-  <form id="musicForm">
-    <label for="title">NOME DA MÚSICA *</label>
-    <input id="title" type="text" placeholder="Ex: Cosmic" required>
+    <p class="help">
+      1. Digite sua senha privada do SEESAW.<br>
+      2. Clique no botão e autorize o aplicativo no Last.fm.<br>
+      3. Volte ao SEESAW usando o botão voltar do celular.<br>
+      4. Digite novamente sua senha e conclua a conexão.
+    </p>
 
-    <label for="artist">ARTISTA *</label>
-    <input id="artist" type="text" placeholder="Ex: Red Velvet" required>
+    <button class="secondary-button" id="finishButton" type="button" disabled>
+      JÁ AUTORIZEI — CONCLUIR CONEXÃO
+    </button>
 
-    <label for="album">ÁLBUM</label>
-    <input id="album" type="text" placeholder="Ex: Cosmic">
+    <div id="authMessage" class="message"></div>
 
-    <label for="quantity">QUANTIDADE DE SCROBBLES *</label>
-    <input id="quantity" type="number" min="1" max="1000" value="1" required>
-
-    <div class="row">
-      <div>
-        <label for="date">DATA (OPCIONAL)</label>
-        <input id="date" type="date">
-      </div>
-      <div>
-        <label for="time">HORÁRIO (OPCIONAL)</label>
-        <input id="time" type="time">
-      </div>
+    <div id="sessionBox" class="session-box">
+      <label>SUA SESSION KEY DO LAST.FM</label>
+      <div id="sessionKey" class="session-key"></div>
+      <button class="secondary-button" id="copySessionButton" type="button">
+        COPIAR SESSION KEY
+      </button>
+      <p class="help">
+        Guarde essa chave. Ela deve estar cadastrada na Vercel como LASTFM_SESSION_KEY.
+      </p>
     </div>
+  </section>
 
-    <button class="add-button" type="submit">+ ADICIONAR À LISTA</button>
-  </form>
-</section>
+  <section class="panel">
+    <div class="panel-title">✦ Informações da música</div>
 
-<div class="stats">
-  <div class="stat"><small>MÚSICAS NA LISTA</small><strong id="trackTotal">0</strong></div>
-  <div class="stat"><small>TOTAL DE SCROBBLES</small><strong id="scrobbleTotal">0</strong></div>
-</div>
+    <form id="musicForm">
+      <label for="title">NOME DA MÚSICA *</label>
+      <input id="title" type="text" placeholder="Ex: Cosmic" required>
 
-<section class="panel">
-  <div class="panel-title">♫ Sua lista de músicas</div>
-  <div id="trackList"><div class="empty">Sua lista está vazia.<br>Adicione sua primeira música!</div></div>
-  <button class="clear" id="clearButton" type="button">Limpar lista</button>
-</section>
+      <label for="artist">ARTISTA *</label>
+      <input id="artist" type="text" placeholder="Ex: Red Velvet" required>
 
-<button class="send-button" id="sendButton" type="button">ENVIAR SCROBBLES →</button>
-<div id="sendMessage" class="message"></div>
+      <label for="album">ÁLBUM</label>
+      <input id="album" type="text" placeholder="Ex: Cosmic">
 
-<p class="note">Confira sua lista antes de enviar. O Last.fm pode ignorar scrobbles duplicados ou inválidos.</p>
-<footer>SEESAW © 2026 · MADE FOR MUSIC LOVERS</footer>
+      <label for="quantity">QUANTIDADE DE SCROBBLES *</label>
+      <input id="quantity" type="number" min="1" max="1000" value="1" required>
+
+      <div class="row">
+        <div>
+          <label for="date">DATA (OPCIONAL)</label>
+          <input id="date" type="date">
+        </div>
+        <div>
+          <label for="time">HORÁRIO (OPCIONAL)</label>
+          <input id="time" type="time">
+        </div>
+      </div>
+
+      <button class="add-button" type="submit">
+        + ADICIONAR À LISTA
+      </button>
+    </form>
+  </section>
+
+  <div class="stats">
+    <div class="stat">
+      <small>MÚSICAS NA LISTA</small>
+      <strong id="trackTotal">0</strong>
+    </div>
+    <div class="stat">
+      <small>TOTAL DE SCROBBLES</small>
+      <strong id="scrobbleTotal">0</strong>
+    </div>
+  </div>
+
+  <section class="panel">
+    <div class="panel-title">♫ Sua lista de músicas</div>
+    <div id="trackList">
+      <div class="empty">Sua lista está vazia.<br>Adicione sua primeira música!</div>
+    </div>
+    <button class="clear" id="clearButton" type="button">Limpar lista</button>
+  </section>
+
+  <button class="send-button" id="sendButton" type="button">
+    ENVIAR SCROBBLES →
+  </button>
+
+  <div id="sendMessage" class="message"></div>
+
+  <p class="note">
+    Confira sua lista antes de enviar. O Last.fm pode ignorar scrobbles duplicados ou inválidos.
+  </p>
+
+  <footer>SEESAW © 2026 · MADE FOR MUSIC LOVERS</footer>
 </div>
 
 <script>
@@ -171,7 +427,9 @@ try {
   tracks = [];
 }
 
-if (pendingToken) finishButton.disabled = false;
+if (pendingToken) {
+  finishButton.disabled = false;
+}
 
 function showAuthMessage(message, type) {
   authMessage.textContent = message;
@@ -222,16 +480,18 @@ connectButton.addEventListener("click", async () => {
 
   if (!password) {
     showAuthMessage("Digite sua senha privada do SEESAW.", "error");
+    passwordInput.focus();
     return;
   }
-
-  const authWindow = window.open("about:blank", "_blank");
 
   connectButton.disabled = true;
   connectButton.textContent = "CONECTANDO...";
 
   try {
-    const data = await callServer({action:"token", password});
+    const data = await callServer({
+      action: "token",
+      password
+    });
 
     if (!data.token || !data.auth_url) {
       throw new Error("O Last.fm não retornou o token de autorização.");
@@ -241,18 +501,17 @@ connectButton.addEventListener("click", async () => {
     sessionStorage.setItem("seesaw_pending_token", pendingToken);
     finishButton.disabled = false;
 
-    if (authWindow) {
-      authWindow.location.href = data.auth_url;
-    } else {
-      throw new Error("O navegador bloqueou a janela. Permita pop-ups e tente novamente.");
-    }
+    showAuthMessage(
+      "Abrindo o Last.fm. Autorize o SEESAW e depois volte para o aplicativo.",
+      "success"
+    );
 
-    showAuthMessage("Autorize o SEESAW na página do Last.fm. Depois volte para esta página.", "success");
+    // Abre a autorização na mesma janela.
+    // Isso evita o bloqueio de pop-ups no aplicativo instalado.
+    window.location.assign(data.auth_url);
 
   } catch (error) {
-    if (authWindow && !authWindow.closed) authWindow.close();
     showAuthMessage(error.message, "error");
-  } finally {
     connectButton.disabled = false;
     connectButton.textContent = "CONECTAR MINHA CONTA LAST.FM";
   }
@@ -265,6 +524,7 @@ finishButton.addEventListener("click", async () => {
 
   if (!password) {
     showAuthMessage("Digite sua senha privada do SEESAW.", "error");
+    passwordInput.focus();
     return;
   }
 
@@ -278,9 +538,9 @@ finishButton.addEventListener("click", async () => {
 
   try {
     const data = await callServer({
-      action:"session",
+      action: "session",
       password,
-      token:pendingToken
+      token: pendingToken
     });
 
     if (!data.session_key) {
@@ -289,12 +549,17 @@ finishButton.addEventListener("click", async () => {
 
     currentSessionKey = data.session_key;
     pendingToken = null;
+
     sessionStorage.removeItem("seesaw_pending_token");
 
     sessionKeyElement.textContent = currentSessionKey;
     sessionBox.style.display = "block";
 
-    showAuthMessage("Conta Last.fm conectada com sucesso: " + data.username, "success");
+    showAuthMessage(
+      "Conta Last.fm conectada com sucesso: " + data.username,
+      "success"
+    );
+
     finishButton.textContent = "CONEXÃO CONCLUÍDA";
 
   } catch (error) {
@@ -321,7 +586,8 @@ function render() {
   trackList.innerHTML = "";
 
   if (tracks.length === 0) {
-    trackList.innerHTML = '<div class="empty">Sua lista está vazia.<br>Adicione sua primeira música!</div>';
+    trackList.innerHTML =
+      '<div class="empty">Sua lista está vazia.<br>Adicione sua primeira música!</div>';
   }
 
   tracks.forEach((track, index) => {
@@ -343,13 +609,16 @@ function render() {
 
     const album = document.createElement("div");
     album.className = "track-album";
-    album.textContent = track.album ? "Álbum: " + track.album : "Álbum não informado";
+    album.textContent = track.album
+      ? "Álbum: " + track.album
+      : "Álbum não informado";
 
     info.append(name, artist, album);
 
     const count = document.createElement("div");
     count.className = "track-count";
-    count.textContent = track.quantity.toLocaleString("pt-BR") + " scrobbles";
+    count.textContent =
+      Number(track.quantity).toLocaleString("pt-BR") + " scrobbles";
 
     top.append(info, count);
     item.append(top);
@@ -359,6 +628,7 @@ function render() {
     date.textContent = track.date
       ? "Data: " + track.date + (track.time ? " · " + track.time : "")
       : "Data e horário: atuais (padrão)";
+
     item.append(date);
 
     const remove = document.createElement("button");
@@ -378,7 +648,11 @@ function render() {
 
   trackTotal.textContent = tracks.length.toLocaleString("pt-BR");
 
-  const total = tracks.reduce((sum, track) => sum + Number(track.quantity), 0);
+  const total = tracks.reduce(
+    (sum, track) => sum + Number(track.quantity),
+    0
+  );
+
   scrobbleTotal.textContent = total.toLocaleString("pt-BR");
 }
 
@@ -424,12 +698,22 @@ $("clearButton").addEventListener("click", () => {
 
 // CONVERTER DATA E HORÁRIO EM TIMESTAMP
 function getTrackTimestamp(track) {
-  if (!track.date && !track.time) return Math.floor(Date.now() / 1000);
+  if (!track.date && !track.time) {
+    return Math.floor(Date.now() / 1000);
+  }
 
-  const date = track.date || new Date().toLocaleDateString("en-CA");
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  const date = track.date || `${year}-${month}-${day}`;
   const time = track.time || "12:00";
 
-  const timestamp = Math.floor(new Date(date + "T" + time + ":00").getTime() / 1000);
+  const timestamp = Math.floor(
+    new Date(date + "T" + time + ":00").getTime() / 1000
+  );
 
   if (!Number.isSafeInteger(timestamp) || timestamp <= 0) {
     throw new Error("Data ou horário inválido em: " + track.title);
@@ -448,12 +732,28 @@ sendButton.addEventListener("click", async () => {
   const password = passwordInput.value.trim();
 
   if (!password) {
-    showSendMessage("Digite sua senha privada do SEESAW na seção de conexão.", "error");
+    showSendMessage(
+      "Digite sua senha privada do SEESAW na seção de conexão.",
+      "error"
+    );
     passwordInput.focus();
     return;
   }
 
-  if (!confirm("Enviar " + tracks.reduce((sum, track) => sum + track.quantity, 0) + " scrobbles para o Last.fm?")) {
+  if (tracks.length > 100) {
+    showSendMessage(
+      "O limite é de 100 músicas diferentes por envio. Divida sua lista.",
+      "error"
+    );
+    return;
+  }
+
+  const totalScrobbles = tracks.reduce(
+    (sum, track) => sum + Number(track.quantity),
+    0
+  );
+
+  if (!confirm("Enviar " + totalScrobbles + " scrobbles para o Last.fm?")) {
     return;
   }
 
@@ -477,34 +777,41 @@ sendButton.addEventListener("click", async () => {
 
   try {
     const data = await callServer({
-      action:"scrobble",
+      action: "scrobble",
       password,
-      tracks:payloadTracks
+      tracks: payloadTracks
     });
 
     showSendMessage(
       "Envio concluído! Aceitos pelo Last.fm: " +
-      data.accepted + " · Ignorados: " + data.ignored +
+      data.accepted +
+      " · Ignorados: " +
+      data.ignored +
       ". Confira seu perfil do Last.fm.",
       "success"
     );
 
   } catch (error) {
-    showSendMessage("Não foi possível concluir o envio: " + error.message, "error");
+    showSendMessage(
+      "Não foi possível concluir o envio: " + error.message,
+      "error"
+    );
+
   } finally {
     sendButton.disabled = false;
     sendButton.textContent = "ENVIAR SCROBBLES →";
   }
 });
 
-render();
-<script>
+// REGISTRAR SERVICE WORKER
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js")
       .catch(error => console.error("Erro ao instalar SEESAW:", error));
   });
 }
+
+render();
 </script>
 
 </body>
